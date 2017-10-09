@@ -7,13 +7,13 @@ import java.util.Date;
  * @Auther Mina Mansour
  * @Date 1/10/2017
  */
-public class UserInfo implements Serializable {
+public class AccessLogInfo implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
 	private String IP;
 
-	private Date loginTime;
+	private Date date;
 
 	private String request;
 
@@ -21,11 +21,11 @@ public class UserInfo implements Serializable {
 
 	private Integer requestCount;
 
-	public UserInfo() {
+	public AccessLogInfo() {
 
 	}
 
-	public UserInfo(String IP, String comment, Integer requestCount) {
+	public AccessLogInfo(String IP, String comment, Integer requestCount) {
 		this.IP = IP;
 		this.comment = comment;
 		this.requestCount = requestCount;
@@ -47,12 +47,12 @@ public class UserInfo implements Serializable {
 		this.comment = comment;
 	}
 
-	public Date getLoginTime() {
-		return loginTime;
+	public Date getDate() {
+		return date;
 	}
 
-	public void setLoginTime(Date loginTime) {
-		this.loginTime = loginTime;
+	public void setDate(Date accessDate) {
+		this.date = accessDate;
 	}
 
 	public String getIP() {

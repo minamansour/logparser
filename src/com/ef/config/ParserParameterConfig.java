@@ -1,4 +1,4 @@
-package com.ef;
+package com.ef.config;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -7,7 +7,7 @@ import java.util.Date;
  * @Auther Mina Mansour
  * @Date 1/10/2017
  */
-public class ParserConfig {
+public class ParserParameterConfig {
 
 	public enum DurationEnum {
 		hourly, daily;
@@ -20,13 +20,24 @@ public class ParserConfig {
 	private DurationEnum duration;
 
 	private Integer threshold;
+	
+	private String filePath;
+	
+
+	public String getFilePath() {
+		return filePath;
+	}
+
+	public void setFilePath(String filePath) {
+		this.filePath = filePath;
+	}
 
 	public Date getStartDate() {
 		return startDate;
 	}
 
 	public String getStartDateAsString() {
-		return new SimpleDateFormat(ParameterReader.PARSER_DATE_PATTERN).format(getStartDate());
+		return new SimpleDateFormat(ParserParameterReader.PARSER_DATE_PATTERN).format(getStartDate());
 	}
 
 	public void setStartDate(Date startDate) {
@@ -42,7 +53,7 @@ public class ParserConfig {
 	}
 
 	public String getEndDateAsString() {
-		return new SimpleDateFormat(ParameterReader.PARSER_DATE_PATTERN).format(getEndDate());
+		return new SimpleDateFormat(ParserParameterReader.PARSER_DATE_PATTERN).format(getEndDate());
 	}
 
 	public DurationEnum getDuration() {

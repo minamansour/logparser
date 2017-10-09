@@ -13,8 +13,10 @@ import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Scanner;
 
+import com.ef.config.ParserParameterConfig;
+import com.ef.config.ParserParameterReader;
 import com.ef.database.DatabaseManager;
-import com.ef.entity.UserInfo;
+import com.ef.entity.AccessLogInfo;
 import com.ef.util.LogUtil;
 
 /*
@@ -26,7 +28,8 @@ public class Parser {
 	private final Path fFilePath;
 	private final static Charset ENCODING = StandardCharsets.UTF_8;
 	private final static String IP_REG_EXP = "^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])$";
-	private final static String DATE_REG_EXP = "\\d{4}-\\d{2}-\\d{2}.\\d{2}:\\d{2}:\\d{2}";
+	private final static String DATE_REG_EXP = "\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}.\\d{3}";
+	private final static String FILE_DELIMITTER_STRING = "\\|";
 
 	protected DatabaseManager databaseManager;
 
@@ -36,41 +39,50 @@ public class Parser {
 	}
 
 	public static void main(String... args) throws IOException {
-		ParserConfig parserConfig = ParameterReader.getInstance().readParameter(args);
-		System.out.println("Enter the server log file path in this format \"C:\\log.txt\" : ");
-		Scanner scanner = new Scanner(System.in);
-		String fileName = null;
-		while (true) {
-			fileName = scanner.nextLine();
-			if (null == fileName || fileName.isEmpty()) {
-				System.out.println("Please enter a valid file name");
-			} else {
-				break;
-			}
+		ParserParameterConfig parserConfig = ParserParameterReader.getInstance().readParameter(args);
+		String filePath = null;
+		if (parserConfig != null && parserConfig.getFilePath() != null && !parserConfig.getFilePath().isEmpty()) {
+			filePath = parserConfig.getFilePath();
 		}
-		scanner.close();
-		Parser parser = new Parser(fileName);
+
+		if (filePath == null) {
+			System.out.println("Enter the server log file path in this format \"C:\\log.txt\" : ");
+			Scanner scanner = new Scanner(System.in);
+			while (true) {
+				filePath = scanner.nextLine();
+				if (null == filePath || filePath.isEmpty()) {
+					System.out.println("Please enter a valid file name");
+				} else {
+					break;
+				}
+			}
+			scanner.close();
+		}
+
+		Parser parser = new Parser(filePath);
 		parser.processRequest(parserConfig);
 	}
 
-	public void processRequest(ParserConfig parserConfig) {
+	public void processRequest(ParserParameterConfig parserConfig) {
 		try {
+			
 			processLineByLine();
-			List<UserInfo> blockedUserInfo = databaseManager.getBlockedUserInfo(
+			
+			List<AccessLogInfo> blockedUserInfo = databaseManager.getBlockedUserInfo(
 					new Timestamp(parserConfig.getStartDate().getTime()),
 					new Timestamp(parserConfig.getEndDate().getTime()), parserConfig.getThreshold());
-			for (UserInfo userInfo : blockedUserInfo) {
-				LogUtil.consolLog(
-						"IP \"" + userInfo.getIP() + "\" having \"" + userInfo.getRequestCount() + "\" requests");
+			for (AccessLogInfo accessLogInfo : blockedUserInfo) {
+				LogUtil.consolLog("IP \"" + accessLogInfo.getIP() + "\" having \"" + accessLogInfo.getRequestCount()
+						+ "\" requests");
 			}
 		} catch (NoSuchFileException e) {
-			LogUtil.consolLog("No file found: "+e.getMessage());
+			LogUtil.consolLog("No file found: " + e.getMessage());
 		} catch (Exception e) {
 			LogUtil.consolLog(e.getMessage());
 		}
 	}
 
-	private void processLineByLine() throws ParseException, IOException {
+	private void processLineByLine() throws ParseException, IOException, ClassNotFoundException, SQLException {
 		try (Scanner scanner = new Scanner(fFilePath, ENCODING.name())) {
 			while (scanner.hasNextLine()) {
 				processLine(scanner.nextLine());
@@ -82,20 +94,23 @@ public class Parser {
 	 * 
 	 * 
 	 * @throws ParseException
+	 * @throws ClassNotFoundException 
+	 * @throws SQLException 
 	 */
 	@SuppressWarnings("resource")
-	private void processLine(String aLine) throws ParseException {
+	private void processLine(String aLine) throws ParseException, ClassNotFoundException, SQLException {
 		Scanner scanner = null;
 		try {
-			scanner = new Scanner(aLine).useDelimiter("\\|");
-			UserInfo userInfo = new UserInfo();
+			scanner = new Scanner(aLine).useDelimiter(FILE_DELIMITTER_STRING);
+			AccessLogInfo accessLogInfo = new AccessLogInfo();
 			while (scanner.hasNext()) {
-				processWord(scanner.next().trim(), userInfo);
+				processWord(scanner.next().trim(), accessLogInfo);
 			}
-			databaseManager.insertServerLogInfo(userInfo);
-		} catch (SQLException e) {
+			databaseManager.insertServerLogInfo(accessLogInfo);
+		} /*catch (SQLException e) {
 			LogUtil.consolLog(e.getMessage());
-		} finally {
+			throw e;
+		}*/ finally {
 			if (null != scanner) {
 				scanner.close();
 			}
@@ -110,14 +125,14 @@ public class Parser {
 	 * @throws ParseException
 	 *             "if Date is not parsable"
 	 */
-	private void processWord(String aWord, UserInfo userInfo) throws ParseException {
+	private void processWord(String aWord, AccessLogInfo accessLogInfo) throws ParseException {
 		if (aWord.matches(IP_REG_EXP)) {
-			userInfo.setIP(aWord);
+			accessLogInfo.setIP(aWord);
 		} else if (aWord.matches(DATE_REG_EXP)) {
-			java.util.Date date = new SimpleDateFormat(ParameterReader.PARSER_DATE_PATTERN).parse(aWord);
-			userInfo.setLoginTime(new java.util.Date(date.getTime()));
+			java.util.Date date = new SimpleDateFormat(ParserParameterReader.DATE_PATTERN).parse(aWord);
+			accessLogInfo.setDate(new java.util.Date(date.getTime()));
 		} else {
-			userInfo.setRequest(aWord);
+			accessLogInfo.setRequest(aWord);
 		}
 	}
 

@@ -9,8 +9,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.ef.entity.UserInfo;
-import com.ef.util.LogUtil;
+import com.ef.entity.AccessLogInfo;
 
 /*
  * @Auther Mina Mansour
@@ -19,36 +18,25 @@ import com.ef.util.LogUtil;
 public class DatabaseManager {
 
 	private final static String DRIVER_CLASS_NAME = "com.mysql.jdbc.Driver";
-	private final static String DATABASE_URL = "jdbc:mysql://localhost:3306/";
-	private final static String DATABASE_NAME = "parserdb";
+	private final static String DATABASE_URL = "jdbc:mysql://localhost:3306/parserdb?useSSL=false";
 	private final static String DATABASE_USERNAME = "root";
 	private final static String DATABASE_PASSWORD = "123456";
 
-	private Connection getDBConnection() {
-
-		Connection connection = null;
-		try {
-			Class.forName(DRIVER_CLASS_NAME);
-			connection = DriverManager.getConnection(DATABASE_URL + DATABASE_NAME, DATABASE_USERNAME,
-					DATABASE_PASSWORD);
-		} catch (SQLException e) {
-			LogUtil.consolLog(e.getMessage());
-		} catch (ClassNotFoundException e) {
-			LogUtil.consolLog(e.getMessage());
-		}
-		return connection;
+	private Connection getDBConnection() throws SQLException, ClassNotFoundException {
+		Class.forName(DRIVER_CLASS_NAME);
+		return DriverManager.getConnection(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD);
 	}
 
-	public void insertServerLogInfo(UserInfo userInfo) throws SQLException {
+	public void insertServerLogInfo(AccessLogInfo accessLogInfo) throws SQLException, ClassNotFoundException {
 		Connection dbConnection = null;
 		PreparedStatement preparedStatement = null;
 		try {
 			dbConnection = getDBConnection();
 			preparedStatement = dbConnection
-					.prepareStatement("insert into server_access_log (IP,date,request) values (?,?,?)");
-			preparedStatement.setString(1, userInfo.getIP());
-			preparedStatement.setTimestamp(2, new Timestamp(userInfo.getLoginTime().getTime()));
-			preparedStatement.setString(3, userInfo.getRequest());
+					.prepareStatement("INSERT INTO server_access_log (IP,date,request) VALUES (?,?,?)");
+			preparedStatement.setString(1, accessLogInfo.getIP());
+			preparedStatement.setTimestamp(2, new Timestamp(accessLogInfo.getDate().getTime()));
+			preparedStatement.setString(3, accessLogInfo.getRequest());
 			preparedStatement.executeUpdate();
 
 		} finally {
@@ -61,14 +49,14 @@ public class DatabaseManager {
 		}
 	}
 
-	public void insertUserBlockInfo(UserInfo userInfo) throws SQLException {
+	public void insertUserBlockInfo(AccessLogInfo accessLogInfo) throws SQLException, ClassNotFoundException {
 		Connection dbConnection = null;
 		PreparedStatement preparedStatement = null;
 		try {
 			dbConnection = getDBConnection();
-			preparedStatement = dbConnection.prepareStatement("insert into server_log (IP,comment) values (?,?)");
-			preparedStatement.setString(1, userInfo.getIP());
-			preparedStatement.setString(2, userInfo.getComment());
+			preparedStatement = dbConnection.prepareStatement("INSERT INTO  server_log (IP,comment) VALUES (?,?)");
+			preparedStatement.setString(1, accessLogInfo.getIP());
+			preparedStatement.setString(2, accessLogInfo.getComment());
 			preparedStatement.executeUpdate();
 
 		} finally {
@@ -81,11 +69,11 @@ public class DatabaseManager {
 		}
 	}
 
-	public List<UserInfo> getBlockedUserInfo(Timestamp startDate, Timestamp endDate, int threshold)
-			throws SQLException {
+	public List<AccessLogInfo> getBlockedUserInfo(Timestamp startDate, Timestamp endDate, int threshold)
+			throws SQLException, ClassNotFoundException {
 		Connection dbConnection = null;
 		PreparedStatement preparedStatement = null;
-		List<UserInfo> userInfos = new ArrayList<UserInfo>();
+		List<AccessLogInfo> accessLogInfos = new ArrayList<AccessLogInfo>();
 		try {
 			dbConnection = getDBConnection();
 			preparedStatement = dbConnection
@@ -99,11 +87,11 @@ public class DatabaseManager {
 			while (resultSet != null && resultSet.next()) {
 				String comment = "User was blocked due to exceed [" + resultSet.getInt(1)
 						+ "] number of requests between this interval [" + startDate + "]-[" + endDate + "].";
-				UserInfo userInfo = new UserInfo(resultSet.getString(2), comment, resultSet.getInt(1));
-				insertUserBlockInfo(userInfo);
-				userInfos.add(userInfo);
+				AccessLogInfo accessLogInfo = new AccessLogInfo(resultSet.getString(2), comment, resultSet.getInt(1));
+				insertUserBlockInfo(accessLogInfo);
+				accessLogInfos.add(accessLogInfo);
 			}
-			return userInfos;
+			return accessLogInfos;
 		} finally {
 			if (null != preparedStatement && !preparedStatement.isClosed()) {
 				preparedStatement.close();

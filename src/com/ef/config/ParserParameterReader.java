@@ -1,4 +1,4 @@
-package com.ef;
+package com.ef.config;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -11,7 +11,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
-import com.ef.ParserConfig.DurationEnum;
+import com.ef.config.ParserParameterConfig.DurationEnum;
 import com.ef.util.LogUtil;
 
 /*
@@ -19,28 +19,29 @@ import com.ef.util.LogUtil;
  * @Date 1/10/2017
  */
 @SuppressWarnings("deprecation")
-public class ParameterReader {
+public class ParserParameterReader {
 
 	private static String START_DATE_OPTION_TXT = "startDate";
 	private static String DURATION_OPTION_TXT = "duration";
 	private static String THRESHOLD_OPTION_TXT = "threshold";
+	private static String ACCESS_LOG_OPTION_TXT = "accesslog";
 	public static String PARSER_DATE_PATTERN = "yyyy-MM-dd.HH:mm:ss";
-	public static String DATE_PATTERN = "yyyy-MM-dd HH:mm:ss";
+	public static String DATE_PATTERN = "yyyy-MM-dd HH:mm:ss.SSS";
 
-	private static ParameterReader parameterReader = null;
+	private static ParserParameterReader parserParameterReader = null;
 
-	private ParameterReader() {
+	private ParserParameterReader() {
 	}
 
-	public static ParameterReader getInstance() {
-		if (null == parameterReader) {
-			parameterReader = new ParameterReader();
+	public static ParserParameterReader getInstance() {
+		if (null == parserParameterReader) {
+			parserParameterReader = new ParserParameterReader();
 		}
-		return parameterReader;
+		return parserParameterReader;
 	}
 
-	public ParserConfig readParameter(String... args) {
-		ParserConfig parserConfig = new ParserConfig();
+	public ParserParameterConfig readParameter(String... args) {
+		ParserParameterConfig parserParameterConfig = new ParserParameterConfig();
 
 		Options options = new Options();
 
@@ -58,15 +59,22 @@ public class ParameterReader {
 		inputOption.setRequired(true);
 		options.addOption(inputOption);
 
+		inputOption = new Option(ACCESS_LOG_OPTION_TXT, ACCESS_LOG_OPTION_TXT, true, "Input Access log file path");
+		inputOption.setRequired(true);
+		options.addOption(inputOption);
+
 		CommandLineParser cmdparser = new GnuParser();
 		CommandLine cmd;
 		try {
 			cmd = cmdparser.parse(options, args);
-			parserConfig.setStartDate(parseStartDate(cmd.getOptionValue(START_DATE_OPTION_TXT), PARSER_DATE_PATTERN));
-			parserConfig.setThreshold(Integer.parseInt(cmd.getOptionValue(THRESHOLD_OPTION_TXT)));
-			parserConfig.setDuration(parseDuration(cmd.getOptionValue(DURATION_OPTION_TXT)));
-			Date endDate = getEndDate(parserConfig.getStartDate(), parserConfig.getDuration(), PARSER_DATE_PATTERN);
-			parserConfig.setEndDate(endDate);
+			parserParameterConfig
+					.setStartDate(parseStartDate(cmd.getOptionValue(START_DATE_OPTION_TXT), PARSER_DATE_PATTERN));
+			parserParameterConfig.setThreshold(Integer.parseInt(cmd.getOptionValue(THRESHOLD_OPTION_TXT)));
+			parserParameterConfig.setDuration(parseDuration(cmd.getOptionValue(DURATION_OPTION_TXT)));
+			Date endDate = getEndDate(parserParameterConfig.getStartDate(), parserParameterConfig.getDuration(),
+					PARSER_DATE_PATTERN);
+			parserParameterConfig.setEndDate(endDate);
+			parserParameterConfig.setFilePath(cmd.getOptionValue(ACCESS_LOG_OPTION_TXT));
 
 		} catch (ParseException e) {
 			System.out.println(e.getMessage());
@@ -77,8 +85,8 @@ public class ParameterReader {
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 			System.exit(1);
-		} 
-		return parserConfig;
+		}
+		return parserParameterConfig;
 	}
 
 	private Date parseStartDate(String dateStr, String dateFromat) {
