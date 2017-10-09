@@ -19,7 +19,7 @@ import com.ef.database.DatabaseManager;
 import com.ef.entity.AccessLogInfo;
 import com.ef.util.LogUtil;
 
-/*
+/**
  * @Auther Mina Mansour
  * @Date 1/10/2017
  */
@@ -33,7 +33,7 @@ public class Parser {
 
 	protected DatabaseManager databaseManager;
 
-	public Parser(String aFileName) {
+	public Parser(String aFileName) throws IOException {
 		fFilePath = Paths.get(aFileName);
 		databaseManager = new DatabaseManager();
 	}
@@ -65,9 +65,9 @@ public class Parser {
 
 	public void processRequest(ParserParameterConfig parserConfig) {
 		try {
-			
+
 			processLineByLine();
-			
+
 			List<AccessLogInfo> blockedUserInfo = databaseManager.getBlockedUserInfo(
 					new Timestamp(parserConfig.getStartDate().getTime()),
 					new Timestamp(parserConfig.getEndDate().getTime()), parserConfig.getThreshold());
@@ -94,11 +94,12 @@ public class Parser {
 	 * 
 	 * 
 	 * @throws ParseException
-	 * @throws ClassNotFoundException 
-	 * @throws SQLException 
+	 * @throws ClassNotFoundException
+	 * @throws SQLException
+	 * @throws IOException
 	 */
 	@SuppressWarnings("resource")
-	private void processLine(String aLine) throws ParseException, ClassNotFoundException, SQLException {
+	private void processLine(String aLine) throws ParseException, ClassNotFoundException, SQLException, IOException {
 		Scanner scanner = null;
 		try {
 			scanner = new Scanner(aLine).useDelimiter(FILE_DELIMITTER_STRING);
@@ -107,10 +108,7 @@ public class Parser {
 				processWord(scanner.next().trim(), accessLogInfo);
 			}
 			databaseManager.insertServerLogInfo(accessLogInfo);
-		} /*catch (SQLException e) {
-			LogUtil.consolLog(e.getMessage());
-			throw e;
-		}*/ finally {
+		} finally {
 			if (null != scanner) {
 				scanner.close();
 			}

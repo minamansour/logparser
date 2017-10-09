@@ -14,7 +14,7 @@ import org.apache.commons.cli.ParseException;
 import com.ef.config.ParserParameterConfig.DurationEnum;
 import com.ef.util.LogUtil;
 
-/*
+/**
  * @Auther Mina Mansour
  * @Date 1/10/2017
  */

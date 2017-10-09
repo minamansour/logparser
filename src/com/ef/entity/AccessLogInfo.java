@@ -3,7 +3,7 @@ package com.ef.entity;
 import java.io.Serializable;
 import java.util.Date;
 
-/*
+/**
  * @Auther Mina Mansour
  * @Date 1/10/2017
  */
